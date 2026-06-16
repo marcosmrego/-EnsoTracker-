@@ -59,5 +59,5 @@ async def blog_post_detail(slug: str):
     return await _climate(f"/api/blog/posts/{slug}")
 
 
-# Em produção o reverse proxy serve o dashboard.
-# Em dev: rode o dashboard via "python -m http.server 8742" na pasta dashboard/
+# Dashboard estático — deve ser montado por último para não interceptar rotas da API
+app.mount("/", StaticFiles(directory="dashboard", html=True), name="dashboard")
