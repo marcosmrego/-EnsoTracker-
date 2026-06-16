@@ -1,15 +1,5 @@
 const API = "https://climate.expansao-ai.com.br"
 
-const _MONTHS = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 }
-
-function _parseWeekDate(s) {
-    // formato DDMMMYYYY ex: "10JUN2026"
-    const day = parseInt(s.slice(0, 2))
-    const mon = _MONTHS[s.slice(2, 5).toUpperCase()] ?? 0
-    const yr  = parseInt(s.slice(5))
-    return new Date(yr, mon, day)
-}
-
 // ── utils ──────────────────────────────────────────────────────────────────
 
 function phaseClass(classificacao) {
@@ -32,170 +22,11 @@ function fmtAnom(v) {
     return (v >= 0 ? "+" : "") + v.toFixed(2) + "°C"
 }
 
-// ── copy editorial por fase ────────────────────────────────────────────────
-
-const _EDITORIAL = {
-    elnino: {
-        headline: "El Niño está se formando no Pacífico. O clima do próximo semestre já está sendo escrito.",
-        body: "Quando o oceano aquece acima de +0.5°C na região Niño 3.4, chuvas, secas e temperaturas mudam em cascata pelo planeta — afetando safras, reservatórios de energia e o dia a dia de milhões de pessoas.",
-        cta: "Monitorar El Niño",
-    },
-    lanina: {
-        headline: "La Niña avança. O resfriamento do Pacífico já está alterando o regime de chuvas.",
-        body: "Quando o oceano resfria abaixo de −0.5°C na região Niño 3.4, o padrão climático global muda — mais chuva no Norte e Nordeste do Brasil, risco de seca no Sul e anomalias de temperatura em todo o hemisfério.",
-        cta: "Monitorar La Niña",
-    },
-    neutro_aquecendo: {
-        headline: "O Pacífico está enviando um sinal. A anomalia semanal acelera antes que o índice oficial confirme.",
-        body: "O dado semanal de temperatura superficial do Pacífico equatorial corre semanas à frente do índice ONI oficial. Acompanhe o sinal em tempo real e antecipe a transição climática antes do mercado.",
-        cta: "Ver análise completa",
-    },
-    neutro: {
-        headline: "O oceano está em equilíbrio. Mas os dados semanais já revelam para onde o clima está indo.",
-        body: "O índice ENSO em fase neutra não significa estabilidade — significa que a janela de transição está aberta. Monitorar o dado semanal de anomalia agora é a diferença entre ser surpreendido ou estar preparado.",
-        cta: "Acompanhar em tempo real",
-    },
-}
-
-function _editorialCopy(classificacao, weeklyAnom, weeklyDelta) {
-    const c = (classificacao || "").toUpperCase()
-    if (c === "EL_NINO") return _EDITORIAL.elnino
-    if (c === "LA_NINA") return _EDITORIAL.lanina
-    if (weeklyDelta != null && weeklyDelta > 0.15) return _EDITORIAL.neutro_aquecendo
-    return _EDITORIAL.neutro
-}
-
-// ── hero editorial ─────────────────────────────────────────────────────────
-
-async function carregarEditorial() {
-    try {
-        const [statusR, weeklyR] = await Promise.all([
-            fetch(`${API}/climate/status`),
-            fetch(`${API}/climate/nino34/weekly`),
-        ])
-        const status = await statusR.json()
-        const weekly = await weeklyR.json()
-
-        const sorted  = [...weekly].sort((a, b) => _parseWeekDate(a.date) - _parseWeekDate(b.date))
-        const latest  = sorted[sorted.length - 1]
-        const prev4w  = sorted.length >= 5 ? sorted[sorted.length - 5] : null
-        const anom    = latest?.nino34_anom
-        const delta   = prev4w != null ? anom - prev4w.nino34_anom : null
-        const cls     = anom >= 0.5 ? "elnino" : anom <= -0.5 ? "lanina" : "neutro"
-
-        // fundo dinâmico
-        document.getElementById("ehBg").className = `eh-bg ${cls}`
-
-        // copy
-        const copy = _editorialCopy(status.classificacao, anom, delta)
-        document.getElementById("ehHeadline").textContent = copy.headline
-        document.getElementById("ehBody").textContent     = copy.body
-        const cta = document.getElementById("ehCta")
-        cta.textContent = copy.cta + " →"
-        cta.className   = `eh-cta ${cls}`
-
-        // número grande com contador animado
-        animarNumero("ehNum", anom, cls)
-
-        // tendência
-        const trendEl = document.getElementById("ehTrend")
-        if (delta != null) {
-            const dir = delta > 0.05 ? "subindo" : delta < -0.05 ? "caindo" : "estável"
-            const dirCls = delta > 0.05 ? "up" : delta < -0.05 ? "down" : "flat"
-            const arrow  = delta > 0.05 ? "↑" : delta < -0.05 ? "↓" : "→"
-            trendEl.innerHTML = `<span class="${dirCls}">${arrow} ${Math.abs(delta).toFixed(2)}°C em 4 semanas · ${dir}</span>`
-        }
-
-        // sparkline
-        desenharSpark(sorted.slice(-8))
-
-    } catch (e) {
-        console.error("editorial:", e)
-    }
-}
-
-function animarNumero(id, target, cls) {
-    const el = document.getElementById(id)
-    if (target == null) { el.textContent = "—"; return }
-
-    const prefix = target >= 0 ? "+" : ""
-    const start  = 0
-    const dur    = 900
-    const t0     = performance.now()
-
-    function step(now) {
-        const p = Math.min((now - t0) / dur, 1)
-        const ease = 1 - Math.pow(1 - p, 3)
-        const val  = start + (target - start) * ease
-        el.textContent = prefix + val.toFixed(2)
-        if (p < 1) requestAnimationFrame(step)
-        else { el.textContent = prefix + target.toFixed(2); el.className = `eh-num ${cls}` }
-    }
-    requestAnimationFrame(step)
-}
-
-function desenharSpark(data) {
-    const svg = d3.select("#ehSpark")
-    const el  = document.getElementById("ehSpark")
-    const W   = el.clientWidth || 340
-    const H   = 80
-    const pad = { t: 8, b: 8, l: 4, r: 4 }
-
-    svg.attr("viewBox", `0 0 ${W} ${H}`)
-
-    const pts = data.map(d => ({ date: _parseWeekDate(d.date), v: d.nino34_anom }))
-
-    const iW = W - pad.l - pad.r
-    const iH = H - pad.t - pad.b
-    const x = d3.scaleLinear().domain([0, pts.length - 1]).range([0, iW])
-    const y = d3.scaleLinear().domain([
-        Math.min(d3.min(pts, d => d.v) - 0.2, -0.3),
-        Math.max(d3.max(pts, d => d.v) + 0.2, 0.3),
-    ]).range([iH, 0])
-
-    const g = svg.append("g").attr("transform", `translate(${pad.l},${pad.t})`)
-
-    // linha zero
-    g.append("line")
-        .attr("x1", 0).attr("x2", iW).attr("y1", y(0)).attr("y2", y(0))
-        .attr("stroke", "rgba(255,255,255,.12)").attr("stroke-width", 1)
-
-    // área
-    const area = d3.area()
-        .x((_, i) => x(i)).y0(y(0)).y1(d => y(d.v))
-        .curve(d3.curveMonotoneX)
-
-    g.append("path")
-        .datum(pts.map(d => ({ ...d, v: Math.max(0, d.v) })))
-        .attr("d", area).attr("fill", "rgba(239,68,68,.2)")
-    g.append("path")
-        .datum(pts.map(d => ({ ...d, v: Math.min(0, d.v) })))
-        .attr("d", area).attr("fill", "rgba(59,130,246,.2)")
-
-    // linha
-    g.append("path")
-        .datum(pts)
-        .attr("d", d3.line().x((_, i) => x(i)).y(d => y(d.v)).curve(d3.curveMonotoneX))
-        .attr("fill", "none")
-        .attr("stroke", "#f59e0b")
-        .attr("stroke-width", 2)
-
-    // último ponto destacado
-    const last = pts[pts.length - 1]
-    g.append("circle").attr("cx", x(pts.length - 1)).attr("cy", y(last.v))
-        .attr("r", 4).attr("fill", "#f59e0b").attr("stroke", "var(--bg)").attr("stroke-width", 2)
-}
-
 // ── status atual ───────────────────────────────────────────────────────────
 
 async function carregarStatus() {
     try {
-        const [statusR, soiR] = await Promise.all([
-            fetch(`${API}/climate/status`),
-            fetch(`${API}/climate/soi`),
-        ])
-        const status = await statusR.json()
-        const soi    = await soiR.json()
+        const status = window.__MOCK__.status; const soi = window.__MOCK__.soi
 
         const cls = phaseClass(status.classificacao)
 
@@ -232,11 +63,10 @@ async function carregarStatus() {
 
 async function carregarSemanal() {
     try {
-        const r    = await fetch(`${API}/climate/nino34/weekly`)
-        const data = await r.json()
+        const data = window.__MOCK__.weekly
         if (!data.length) return
 
-        const sorted = [...data].sort((a, b) => _parseWeekDate(a.date) - _parseWeekDate(b.date))
+        const sorted = [...data].sort((a, b) => a.date < b.date ? -1 : 1)
         const latest = sorted[sorted.length - 1]
         const prev4w = sorted.length >= 5 ? sorted[sorted.length - 5] : null
 
@@ -284,8 +114,7 @@ async function carregarSemanal() {
 
 async function carregarOni() {
     try {
-        const r    = await fetch(`${API}/climate/history`)
-        const raw  = await r.json()
+        const raw  = window.__MOCK__.history
         const data = [...raw].reverse()   // cronológico
 
         desenharOni(data)
@@ -449,8 +278,14 @@ function desenharSemanal(data) {
     svg.attr("viewBox", `0 0 ${W} ${H}`)
 
     // converter dates tipo "10JUN2026"
-    const parsed = data.map(d => ({ date: _parseWeekDate(d.date), anom: d.nino34_anom }))
-        .filter(d => !isNaN(d.date))
+    const months = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 }
+    const parsed = data.map(d => {
+        const s   = d.date
+        const day = parseInt(s.slice(0, 2))
+        const mon = months[s.slice(2, 5).toUpperCase()] ?? 0
+        const yr  = parseInt(s.slice(5))
+        return { date: new Date(yr, mon, day), anom: d.nino34_anom }
+    }).filter(d => !isNaN(d.date))
 
     const recent = parsed.slice(-12)
 
@@ -553,8 +388,7 @@ function desenharSemanal(data) {
 
 async function carregarPredicao() {
     try {
-        const r = await fetch(`${API}/climate/prediction`)
-        const d = await r.json()
+        const d = window.__MOCK__.prediction
         const block = document.getElementById("predictionBlock")
         block.innerHTML = d.prediction
             ? `<p>${d.prediction}</p>`
@@ -567,7 +401,6 @@ async function carregarPredicao() {
 // ── init ───────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", () => {
-    carregarEditorial()
     carregarStatus()
     carregarOni()
     carregarSemanal()

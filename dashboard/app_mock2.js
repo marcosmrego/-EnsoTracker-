@@ -1,15 +1,5 @@
 const API = "https://climate.expansao-ai.com.br"
 
-const _MONTHS = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 }
-
-function _parseWeekDate(s) {
-    // formato DDMMMYYYY ex: "10JUN2026"
-    const day = parseInt(s.slice(0, 2))
-    const mon = _MONTHS[s.slice(2, 5).toUpperCase()] ?? 0
-    const yr  = parseInt(s.slice(5))
-    return new Date(yr, mon, day)
-}
-
 // ── utils ──────────────────────────────────────────────────────────────────
 
 function phaseClass(classificacao) {
@@ -70,13 +60,13 @@ function _editorialCopy(classificacao, weeklyAnom, weeklyDelta) {
 async function carregarEditorial() {
     try {
         const [statusR, weeklyR] = await Promise.all([
-            fetch(`${API}/climate/status`),
-            fetch(`${API}/climate/nino34/weekly`),
+            Promise.resolve({ok:true,json:()=>Promise.resolve(window.__MOCK__.status)}),
+            Promise.resolve({ok:true,json:()=>Promise.resolve(window.__MOCK__.weekly)}),
         ])
         const status = await statusR.json()
         const weekly = await weeklyR.json()
 
-        const sorted  = [...weekly].sort((a, b) => _parseWeekDate(a.date) - _parseWeekDate(b.date))
+        const sorted  = [...weekly].sort((a, b) => a.date < b.date ? -1 : 1)
         const latest  = sorted[sorted.length - 1]
         const prev4w  = sorted.length >= 5 ? sorted[sorted.length - 5] : null
         const anom    = latest?.nino34_anom
@@ -143,7 +133,14 @@ function desenharSpark(data) {
 
     svg.attr("viewBox", `0 0 ${W} ${H}`)
 
-    const pts = data.map(d => ({ date: _parseWeekDate(d.date), v: d.nino34_anom }))
+    const months = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 }
+    const pts = data.map(d => {
+        const s = d.date
+        return {
+            date: new Date(parseInt(s.slice(5)), months[s.slice(2,5).toUpperCase()]??0, parseInt(s.slice(0,2))),
+            v: d.nino34_anom,
+        }
+    })
 
     const iW = W - pad.l - pad.r
     const iH = H - pad.t - pad.b
@@ -191,8 +188,8 @@ function desenharSpark(data) {
 async function carregarStatus() {
     try {
         const [statusR, soiR] = await Promise.all([
-            fetch(`${API}/climate/status`),
-            fetch(`${API}/climate/soi`),
+            Promise.resolve({ok:true,json:()=>Promise.resolve(window.__MOCK__.status)}),
+            Promise.resolve({ok:true,json:()=>Promise.resolve(window.__MOCK__.soi)}),
         ])
         const status = await statusR.json()
         const soi    = await soiR.json()
@@ -232,11 +229,11 @@ async function carregarStatus() {
 
 async function carregarSemanal() {
     try {
-        const r    = await fetch(`${API}/climate/nino34/weekly`)
+        const r    = await Promise.resolve({ok:true,json:()=>Promise.resolve(window.__MOCK__.weekly)})
         const data = await r.json()
         if (!data.length) return
 
-        const sorted = [...data].sort((a, b) => _parseWeekDate(a.date) - _parseWeekDate(b.date))
+        const sorted = [...data].sort((a, b) => a.date < b.date ? -1 : 1)
         const latest = sorted[sorted.length - 1]
         const prev4w = sorted.length >= 5 ? sorted[sorted.length - 5] : null
 
@@ -284,7 +281,7 @@ async function carregarSemanal() {
 
 async function carregarOni() {
     try {
-        const r    = await fetch(`${API}/climate/history`)
+        const r    = await Promise.resolve({ok:true,json:()=>Promise.resolve(window.__MOCK__.history)})
         const raw  = await r.json()
         const data = [...raw].reverse()   // cronológico
 
@@ -449,8 +446,14 @@ function desenharSemanal(data) {
     svg.attr("viewBox", `0 0 ${W} ${H}`)
 
     // converter dates tipo "10JUN2026"
-    const parsed = data.map(d => ({ date: _parseWeekDate(d.date), anom: d.nino34_anom }))
-        .filter(d => !isNaN(d.date))
+    const months = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 }
+    const parsed = data.map(d => {
+        const s   = d.date
+        const day = parseInt(s.slice(0, 2))
+        const mon = months[s.slice(2, 5).toUpperCase()] ?? 0
+        const yr  = parseInt(s.slice(5))
+        return { date: new Date(yr, mon, day), anom: d.nino34_anom }
+    }).filter(d => !isNaN(d.date))
 
     const recent = parsed.slice(-12)
 
@@ -553,7 +556,7 @@ function desenharSemanal(data) {
 
 async function carregarPredicao() {
     try {
-        const r = await fetch(`${API}/climate/prediction`)
+        const r = await Promise.resolve({ok:true,json:()=>Promise.resolve(window.__MOCK__.prediction)})
         const d = await r.json()
         const block = document.getElementById("predictionBlock")
         block.innerHTML = d.prediction
