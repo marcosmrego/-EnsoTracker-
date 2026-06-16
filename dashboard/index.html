@@ -4,47 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ENSO Tracker — Monitoramento em tempo real do El Niño e La Niña</title>
-    <meta name="description" content="Acompanhe em tempo real o índice ONI, anomalias de temperatura do Pacífico e a análise preditiva do ENSO com dados atualizados diariamente.">
+    <meta name="description" content="Acompanhe em tempo real o índice ONI, anomalias de temperatura do Pacífico e análise preditiva do ENSO atualizada diariamente por IA.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
     <link rel="stylesheet" href="style.css?v=1">
 </head>
 <body>
-    <header class="site-header">
+
+<header class="site-header">
+    <div class="container">
+        <div class="logo">ENSO<span>Tracker</span></div>
+        <nav>
+            <a href="#tracker">Tracker</a>
+            <a href="#tendencia">Tendência</a>
+            <a href="#analise">Análise IA</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+
+    <!-- HERO -->
+    <section class="hero" id="tracker">
         <div class="container">
-            <div class="logo">ENSO<span>Tracker</span></div>
-            <nav>
-                <a href="#tracker">Tracker</a>
-                <a href="#blog">Análises</a>
-            </nav>
+            <div class="hero-grid">
+
+                <!-- Fase atual -->
+                <div class="phase-card">
+                    <div class="phase-label">Fase ENSO Atual</div>
+                    <div class="phase-badge" id="phaseBadge">—</div>
+                    <div class="oni-value-row">
+                        <div class="oni-block">
+                            <span class="oni-label">ONI Mensal</span>
+                            <span class="oni-value" id="oniValue">—</span>
+                        </div>
+                        <div class="oni-block">
+                            <span class="oni-label">Niño 3.4 Mensal</span>
+                            <span class="oni-value" id="nino34Value">—</span>
+                        </div>
+                    </div>
+                    <div class="phase-note" id="phaseNote">Carregando dados...</div>
+                </div>
+
+                <!-- Cards laterais -->
+                <div class="side-cards">
+
+                    <div class="stat-card" id="weeklyCard">
+                        <div class="stat-card-label">Niño 3.4 Semanal</div>
+                        <div class="stat-card-value" id="weeklyValue">—</div>
+                        <div class="stat-card-sub" id="weeklyTrend">—</div>
+                    </div>
+
+                    <div class="stat-card" id="soiCard">
+                        <div class="stat-card-label">SOI</div>
+                        <div class="stat-card-value" id="soiValue">—</div>
+                        <div class="stat-card-sub" id="soiDesc">—</div>
+                    </div>
+
+                </div>
+
+            </div>
         </div>
-    </header>
+    </section>
 
-    <main>
-        <section class="hero">
-            <div class="container">
-                <h1>El Niño e La Niña em tempo real</h1>
-                <p class="hero-sub">Índices ENSO atualizados diariamente com análise preditiva por IA</p>
-            </div>
-        </section>
-
-        <section id="tracker" class="section">
-            <div class="container">
-                <!-- conteúdo do tracker virá aqui -->
-            </div>
-        </section>
-
-        <section id="blog" class="section">
-            <div class="container">
-                <!-- blog diário de IA virá aqui -->
-            </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
+    <!-- ONI HISTÓRICO -->
+    <section class="section" id="tendencia">
         <div class="container">
-            <p>Dados: NOAA CPC · USGS · NSIDC &nbsp;|&nbsp; Análises por IA &nbsp;|&nbsp; <a href="https://climate.expansao-ai.com.br" target="_blank">Expansão AI Climate</a></p>
+            <div class="section-header">
+                <h2 class="section-title">ONI — Histórico 24 meses</h2>
+                <p class="section-sub">Oceanic Niño Index · Média móvel de 3 meses das anomalias de TSM na região Niño 3.4</p>
+            </div>
+            <div class="chart-wrap">
+                <svg id="oniChart"></svg>
+            </div>
+            <div class="chart-legend">
+                <span class="legend-item elnino">El Niño (&gt; +0.5°C)</span>
+                <span class="legend-item neutro">Neutro</span>
+                <span class="legend-item lanina">La Niña (&lt; −0.5°C)</span>
+            </div>
         </div>
-    </footer>
+    </section>
 
-    <script src="app.js?v=1"></script>
+    <!-- TENDÊNCIA SEMANAL -->
+    <section class="section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Niño 3.4 — Tendência Semanal</h2>
+                <p class="section-sub">Anomalia de TSM em tempo real · Dado mais recente que o ONI mensal (CPC/NOAA)</p>
+            </div>
+            <div class="weekly-grid">
+                <div class="weekly-chart-wrap">
+                    <svg id="weeklyChart"></svg>
+                </div>
+                <div class="weekly-regions" id="weeklyRegions">
+                    <!-- cards de todas as regiões -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ANÁLISE PREDITIVA -->
+    <section class="section" id="analise">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Análise Preditiva — Próximos 1 a 3 meses</h2>
+                <p class="section-sub">Gerada por IA com base no conjunto de índices climáticos · Atualizada mensalmente</p>
+            </div>
+            <div class="prediction-block" id="predictionBlock">
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text" style="width:90%"></div>
+                <div class="skeleton skeleton-text" style="width:95%"></div>
+                <div class="skeleton skeleton-text" style="width:80%"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BLOG PLACEHOLDER -->
+    <section class="section blog-soon">
+        <div class="container">
+            <div class="soon-box">
+                <div class="soon-icon">📰</div>
+                <h3>Análise Diária por IA</h3>
+                <p>Em breve: um blog gerado diariamente pela IA combinando dados ENSO com as principais notícias climáticas do dia.</p>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-row">
+            <span class="logo-sm">ENSO<span>Tracker</span></span>
+            <span class="footer-meta">Dados: NOAA CPC · USGS · NSIDC &nbsp;|&nbsp; Análises por IA &nbsp;|&nbsp; <a href="https://climate.expansao-ai.com.br" target="_blank">Powered by Expansão AI Climate</a></span>
+        </div>
+    </div>
+</footer>
+
+<script src="app.js?v=1"></script>
 </body>
 </html>
