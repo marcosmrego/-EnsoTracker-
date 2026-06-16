@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <link rel="stylesheet" href="style.css?v=1">
 </head>
 <body>
@@ -19,6 +20,7 @@
             <a href="#tracker">Tracker</a>
             <a href="#tendencia">Tendência</a>
             <a href="#analise">Análise IA</a>
+            <a href="#blog">Blog</a>
         </nav>
     </div>
 </header>
@@ -167,14 +169,25 @@
         </div>
     </section>
 
-    <!-- BLOG PLACEHOLDER -->
-    <section class="section blog-soon">
+    <!-- BLOG -->
+    <section class="section" id="blog">
         <div class="container">
-            <div class="soon-box">
-                <div class="soon-icon">📰</div>
-                <h3>Análise Diária por IA</h3>
-                <p>Em breve: um blog gerado diariamente pela IA combinando dados ENSO com as principais notícias climáticas do dia.</p>
+            <div class="section-header">
+                <h2 class="section-title">Análise Diária por IA</h2>
+                <p class="section-sub">Gerada diariamente com base nos dados ENSO e nos principais artigos climáticos do dia</p>
             </div>
+
+            <!-- Post em destaque -->
+            <article class="blog-featured" id="blogFeatured">
+                <div class="skeleton skeleton-text" style="width:70%;height:2rem;margin-bottom:1rem"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text" style="width:90%"></div>
+                <div class="skeleton skeleton-text" style="width:80%"></div>
+                <div class="skeleton skeleton-text" style="width:95%"></div>
+            </article>
+
+            <!-- Posts anteriores -->
+            <div class="blog-grid" id="blogGrid"></div>
         </div>
     </section>
 

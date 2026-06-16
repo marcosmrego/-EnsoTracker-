@@ -49,5 +49,15 @@ async def prediction():
     return await _climate("/climate/prediction")
 
 
+@app.get("/api/blog/posts")
+async def blog_posts(limit: int = 10, offset: int = 0):
+    return await _climate(f"/api/blog/posts?limit={limit}&offset={offset}")
+
+
+@app.get("/api/blog/posts/{slug}")
+async def blog_post_detail(slug: str):
+    return await _climate(f"/api/blog/posts/{slug}")
+
+
 # Em produção o reverse proxy serve o dashboard.
 # Em dev: rode o dashboard via "python -m http.server 8742" na pasta dashboard/
