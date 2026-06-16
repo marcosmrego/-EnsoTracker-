@@ -10,3 +10,10 @@ venv/
 dist/
 .DS_Store
 Thumbs.db
+
+# preview / mock artefatos de dev
+dashboard/preview*.html
+dashboard/app_mock*.js
+dashboard/mock_data.json
+*.png
+*.pdf
