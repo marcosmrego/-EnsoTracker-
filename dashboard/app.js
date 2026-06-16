@@ -1,4 +1,4 @@
-const API = "https://climate.expansao-ai.com.br"
+const API = "http://localhost:8000"  // EnsoTracker API local (proxy ao Climate API)
 
 const _MONTHS = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 }
 
@@ -70,8 +70,8 @@ function _editorialCopy(classificacao, weeklyAnom, weeklyDelta) {
 async function carregarEditorial() {
     try {
         const [statusR, weeklyR] = await Promise.all([
-            fetch(`${API}/climate/status`),
-            fetch(`${API}/climate/nino34/weekly`),
+            fetch(`${API}/api/status`),
+            fetch(`${API}/api/weekly`),
         ])
         const status = await statusR.json()
         const weekly = await weeklyR.json()
@@ -191,8 +191,8 @@ function desenharSpark(data) {
 async function carregarStatus() {
     try {
         const [statusR, soiR] = await Promise.all([
-            fetch(`${API}/climate/status`),
-            fetch(`${API}/climate/soi`),
+            fetch(`${API}/api/status`),
+            fetch(`${API}/api/soi`),
         ])
         const status = await statusR.json()
         const soi    = await soiR.json()
@@ -232,7 +232,7 @@ async function carregarStatus() {
 
 async function carregarSemanal() {
     try {
-        const r    = await fetch(`${API}/climate/nino34/weekly`)
+        const r    = await fetch(`${API}/api/weekly`)
         const data = await r.json()
         if (!data.length) return
 
@@ -284,7 +284,7 @@ async function carregarSemanal() {
 
 async function carregarOni() {
     try {
-        const r    = await fetch(`${API}/climate/history`)
+        const r    = await fetch(`${API}/api/history`)
         const raw  = await r.json()
         const data = [...raw].reverse()   // cronológico
 
@@ -553,7 +553,7 @@ function desenharSemanal(data) {
 
 async function carregarPredicao() {
     try {
-        const r = await fetch(`${API}/climate/prediction`)
+        const r = await fetch(`${API}/api/prediction`)
         const d = await r.json()
         const block = document.getElementById("predictionBlock")
         block.innerHTML = d.prediction
