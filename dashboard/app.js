@@ -574,7 +574,7 @@ async function carregarBlogTeaser() {
             <div class="blog-teaser-date">${fmtDate(latest.publicado_em)}</div>
             <h3>${latest.titulo}</h3>
             <p class="blog-teaser-resumo">${latest.resumo || ""}</p>
-            <a class="blog-teaser-cta" href="blog.html?post=${latest.slug}">Ler análise completa →</a>
+            <a class="blog-teaser-cta" href="/blog/${latest.slug}">Ler análise completa →</a>
         `
     } catch (e) {
         console.error("blog teaser:", e)

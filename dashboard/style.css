@@ -669,6 +669,25 @@ nav a:hover {
     text-decoration: none;
 }
 
+.blog-card-featured {
+    display: block;
+    margin-bottom: 32px;
+}
+
+.blog-card-featured .blog-card-banner {
+    height: 220px;
+    margin-bottom: 18px;
+}
+
+.blog-card-featured h3 {
+    font-size: 22px;
+}
+
+.blog-card-featured .blog-card-resumo {
+    font-size: 15px;
+    -webkit-line-clamp: 3;
+}
+
 .blog-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

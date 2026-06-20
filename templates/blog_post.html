@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }} | ENSO Tracker Blog</title>
+    <meta name="description" content="{{ resumo }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:title" content="{{ titulo }}">
+    <meta property="og:description" content="{{ resumo }}">
+    <meta property="og:site_name" content="ENSO Tracker">
+    <meta property="article:published_time" content="{{ publicado_em }}">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ titulo }}">
+    <meta name="twitter:description" content="{{ resumo }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css?v=1">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": {{ titulo | tojson }},
+        "description": {{ resumo | tojson }},
+        "datePublished": {{ publicado_em | tojson }},
+        "author": { "@type": "Organization", "name": "ENSO Tracker" },
+        "publisher": {
+            "@type": "Organization",
+            "name": "ENSO Tracker",
+            "url": "https://ensotracker.expansao-ai.com.br"
+        },
+        "mainEntityOfPage": {{ canonical_url | tojson }}
+    }
+    </script>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="container">
+        <a href="/" class="logo">ENSO<span>Tracker</span></a>
+        <nav>
+            <a href="/#tracker">Tracker</a>
+            <a href="/#tendencia">Tendência</a>
+            <a href="/#analise">Análise IA</a>
+            <a href="/blog" class="active">Blog</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <section class="section">
+        <div class="container">
+
+            <a href="/blog" class="blog-back">← Todas as análises</a>
+
+            <article class="blog-featured">
+                <div class="blog-banner" id="bannerSlot" data-slug="{{ slug }}" data-fase="{{ fase_enso }}" data-oni="{{ oni_valor if oni_valor is not none else '' }}">
+                    <span class="blog-banner-label">{{ fase_label }}{{ oni_str }}</span>
+                </div>
+                <div class="blog-featured-meta">
+                    <span>{{ data_label }}</span>
+                </div>
+                <h1>{{ titulo }}</h1>
+                <div class="blog-featured-body">{{ corpo_html | safe }}</div>
+                {% if fontes %}
+                <div class="blog-featured-sources">Fontes consultadas:
+                    {% for f in fontes %}{% if f.url %}<a href="{{ f.url }}" target="_blank" rel="noopener">{{ f.source }}</a>{% else %}{{ f.source }}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+                </div>
+                {% endif %}
+            </article>
+
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-row">
+            <span class="logo-sm">ENSO<span>Tracker</span></span>
+            <span class="footer-meta">Dados: NOAA CPC · USGS · NSIDC &nbsp;|&nbsp; Análises por IA &nbsp;|&nbsp; <a href="https://climate.expansao-ai.com.br" target="_blank">Powered by Expansão AI Climate</a></span>
+        </div>
+    </div>
+</footer>
+
+<script src="/blog-common.js"></script>
+<script>
+    // Progressive enhancement: substitui o placeholder pelo banner SVG gerado a partir dos dados.
+    const slot = document.getElementById("bannerSlot")
+    if (slot) {
+        const label = slot.querySelector(".blog-banner-label")
+        const oniRaw = slot.dataset.oni
+        slot.innerHTML = bannerSvg(slot.dataset.fase, oniRaw ? parseFloat(oniRaw) : null, slot.dataset.slug)
+        if (label) slot.appendChild(label)
+    }
+</script>
+</body>
+</html>
