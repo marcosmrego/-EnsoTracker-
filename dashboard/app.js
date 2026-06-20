@@ -1,4 +1,4 @@
-const API = window.location.hostname === "localhost" ? "http://localhost:8000" : ""
+// API, phaseClass, phaseLabel, fmtDate, renderMarkdown vêm de blog-common.js
 
 const _MONTHS = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 }
 
@@ -11,21 +11,6 @@ function _parseWeekDate(s) {
 }
 
 // ── utils ──────────────────────────────────────────────────────────────────
-
-function phaseClass(classificacao) {
-    if (!classificacao) return "neutro"
-    const c = classificacao.toUpperCase()
-    if (c === "EL_NINO") return "elnino"
-    if (c === "LA_NINA") return "lanina"
-    return "neutro"
-}
-
-function phaseLabel(classificacao) {
-    const c = (classificacao || "").toUpperCase()
-    if (c === "EL_NINO") return "El Niño"
-    if (c === "LA_NINA") return "La Niña"
-    return "Neutro"
-}
 
 function fmtAnom(v) {
     if (v == null) return "—"
@@ -564,123 +549,36 @@ async function carregarPredicao() {
     }
 }
 
-// ── blog ───────────────────────────────────────────────────────────────────
+// ── blog (teaser — página completa em blog.html) ───────────────────────────
 
-function _faseLabel(fase) {
-    if (!fase) return ""
-    const m = { "EL_NINO": "El Niño", "LA_NINA": "La Niña", "NEUTRO": "Neutro" }
-    return m[fase.toUpperCase()] || fase
-}
-
-function _fmtDate(iso) {
-    if (!iso) return ""
-    const d = new Date(iso)
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-}
-
-function _renderMarkdown(text) {
-    if (typeof marked !== "undefined") return marked.parse(text || "")
-    // fallback: bold e parágrafos
-    return (text || "")
-        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .split("\n\n")
-        .map(p => `<p>${p.trim()}</p>`)
-        .join("")
-}
-
-async function carregarBlog() {
+async function carregarBlogTeaser() {
+    const el = document.getElementById("blogTeaser")
+    if (!el) return
     try {
-        const r = await fetch(`${API}/api/blog/posts?limit=6`)
-        if (!r.ok) { document.getElementById("blogFeatured").innerHTML = ""; return }
+        const r = await fetch(`${API}/api/blog/posts?limit=1`)
+        if (!r.ok) throw new Error("fetch falhou")
         const posts = await r.json()
         if (!posts || posts.length === 0) {
-            document.getElementById("blogFeatured").innerHTML =
-                `<p style="color:var(--text-3)">Nenhum post publicado ainda.</p>`
+            el.innerHTML = `<p style="color:var(--text-3)">Nenhum post publicado ainda.</p>`
             return
         }
-
-        const [latest, ...rest] = posts
-
-        // Post em destaque — busca corpo completo
-        const dr = await fetch(`${API}/api/blog/posts/${latest.slug}`)
-        const full = dr.ok ? await dr.json() : latest
-
-        const fontes = (full.fontes || []).slice(0, 5)
-        const fontesHtml = fontes.length
-            ? `<div class="blog-featured-sources">Fontes consultadas: ${
-                fontes.map(f => f.url
-                    ? `<a href="${f.url}" target="_blank" rel="noopener">${f.source}</a>`
-                    : f.source
-                ).join(" · ")
-              }</div>`
+        const latest = posts[0]
+        const oniStr = latest.oni_valor !== null && latest.oni_valor !== undefined
+            ? ` · ONI ${latest.oni_valor > 0 ? "+" : ""}${Number(latest.oni_valor).toFixed(2)}`
             : ""
 
-        const faseLabel = _faseLabel(full.fase_enso)
-        const oniStr = full.oni_valor !== null && full.oni_valor !== undefined
-            ? ` · ONI ${full.oni_valor > 0 ? "+" : ""}${Number(full.oni_valor).toFixed(2)}`
-            : ""
-
-        document.getElementById("blogFeatured").innerHTML = `
-            <div class="blog-featured-meta">
-                <span class="blog-featured-phase">${faseLabel}${oniStr}</span>
-                <span>${_fmtDate(full.publicado_em)}</span>
+        el.innerHTML = `
+            <div class="blog-banner">${bannerSvg(latest.fase_enso, latest.oni_valor, latest.slug)}
+                <span class="blog-banner-label">${phaseLabel(latest.fase_enso)}${oniStr}</span>
             </div>
-            <h2>${full.titulo}</h2>
-            <div class="blog-featured-body">${_renderMarkdown(full.corpo)}</div>
-            ${fontesHtml}
+            <div class="blog-teaser-date">${fmtDate(latest.publicado_em)}</div>
+            <h3>${latest.titulo}</h3>
+            <p class="blog-teaser-resumo">${latest.resumo || ""}</p>
+            <a class="blog-teaser-cta" href="blog.html?post=${latest.slug}">Ler análise completa →</a>
         `
-
-        // Cards de posts anteriores
-        if (rest.length > 0) {
-            document.getElementById("blogGrid").innerHTML = rest.map(p => `
-                <div class="blog-card" onclick="abrirPost('${p.slug}')">
-                    <div class="blog-card-date">${_fmtDate(p.publicado_em)}</div>
-                    <h3>${p.titulo}</h3>
-                    <p class="blog-card-resumo">${p.resumo || ""}</p>
-                </div>
-            `).join("")
-        }
-
     } catch (e) {
-        console.error("blog:", e)
-        document.getElementById("blogFeatured").innerHTML =
-            `<p style="color:var(--text-3)">Erro ao carregar posts.</p>`
-    }
-}
-
-async function abrirPost(slug) {
-    try {
-        const r = await fetch(`${API}/api/blog/posts/${slug}`)
-        if (!r.ok) return
-        const full = await r.json()
-
-        const fontes = (full.fontes || []).slice(0, 5)
-        const fontesHtml = fontes.length
-            ? `<div class="blog-featured-sources">Fontes consultadas: ${
-                fontes.map(f => f.url
-                    ? `<a href="${f.url}" target="_blank" rel="noopener">${f.source}</a>`
-                    : f.source
-                ).join(" · ")
-              }</div>`
-            : ""
-
-        const faseLabel = _faseLabel(full.fase_enso)
-        const oniStr = full.oni_valor !== null && full.oni_valor !== undefined
-            ? ` · ONI ${full.oni_valor > 0 ? "+" : ""}${Number(full.oni_valor).toFixed(2)}`
-            : ""
-
-        document.getElementById("blogFeatured").innerHTML = `
-            <div class="blog-featured-meta">
-                <span class="blog-featured-phase">${faseLabel}${oniStr}</span>
-                <span>${_fmtDate(full.publicado_em)}</span>
-            </div>
-            <h2>${full.titulo}</h2>
-            <div class="blog-featured-body">${_renderMarkdown(full.corpo)}</div>
-            ${fontesHtml}
-        `
-        document.getElementById("blogFeatured").scrollIntoView({ behavior: "smooth" })
-    } catch (e) {
-        console.error("abrirPost:", e)
+        console.error("blog teaser:", e)
+        el.innerHTML = `<p style="color:var(--text-3)">Erro ao carregar o blog.</p>`
     }
 }
 
@@ -692,5 +590,5 @@ document.addEventListener("DOMContentLoaded", () => {
     carregarOni()
     carregarSemanal()
     carregarPredicao()
-    carregarBlog()
+    carregarBlogTeaser()
 })
